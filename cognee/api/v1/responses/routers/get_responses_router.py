@@ -48,6 +48,7 @@ def get_responses_router() -> APIRouter:
         tools: Optional[List[Dict[str, Any]]] = DEFAULT_TOOLS,
         tool_choice: Any = "auto",
         temperature: float = 1.0,
+        user: Optional[User] = None,
     ) -> Dict[str, Any]:
         """
         Call appropriate model API based on model name
@@ -110,6 +111,7 @@ def get_responses_router() -> APIRouter:
             tools=tools,
             tool_choice=request.tool_choice,
             temperature=request.temperature,
+            user=user,
         )
 
         # Use the response ID from the API or generate a new one
@@ -135,9 +137,10 @@ def get_responses_router() -> APIRouter:
                     "type": "function",
                 }
 
-                # Dispatch the function
+                # Dispatch the function as the authenticated user so tool calls
+                # (search/cognify/add) stay scoped to that principal's datasets.
                 try:
-                    function_result = await dispatch_function(tool_call)
+                    function_result = await dispatch_function(tool_call, user)
                     output_status = "success"
                 except Exception as e:
                     logger.exception(f"Error executing function {function_name}: {e}")

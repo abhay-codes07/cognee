@@ -16,9 +16,14 @@ from cognee.api.v1.responses.default_tools import DEFAULT_TOOLS
 logger = logging.getLogger(__name__)
 
 
-async def dispatch_function(tool_call: Union[ToolCall, Dict[str, Any]]) -> str:
+async def dispatch_function(tool_call: Union[ToolCall, Dict[str, Any]], user=None) -> str:
     """
     Dispatches a function call to the appropriate Cognee function.
+
+    The dispatched tools (search/cognify/add) run as ``user``. Callers must pass
+    the authenticated user so tool calls stay scoped to that principal's
+    datasets; ``get_default_user`` is only a fallback for unauthenticated /
+    single-user contexts where no user is supplied.
     """
     if isinstance(tool_call, dict):
         function_data = tool_call.get("function", {})
@@ -32,7 +37,8 @@ async def dispatch_function(tool_call: Union[ToolCall, Dict[str, Any]]) -> str:
 
     logger.info(f"Dispatching function: {function_name} with args: {arguments}")
 
-    user = await get_default_user()
+    if user is None:
+        user = await get_default_user()
 
     if function_name == "search":
         return await handle_search(arguments, user)
